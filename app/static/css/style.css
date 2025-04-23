@@ -1,0 +1,256 @@
+/* WenShu应用样式表 */
+
+/* 全局样式 */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "微软雅黑", Arial, sans-serif;
+    background-color: #f5f7fa;
+    color: #333;
+}
+
+/* 布局样式 */
+.el-container {
+    height: 100vh;
+}
+
+.el-header {
+    background-color: #fff;
+    color: #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+    padding: 0 20px;
+    height: 60px !important;
+}
+
+.el-aside {
+    background-color: #fff;
+    color: #333;
+    border-right: 1px solid #e6e6e6;
+    position: relative;
+    padding-bottom: 50px;
+}
+
+.el-main {
+    background-color: #f5f7fa;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+/* Logo样式 */
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo h1 {
+    font-size: 24px;
+    margin: 0;
+    margin-right: 10px;
+    color: #409EFF;
+}
+
+.logo p {
+    font-size: 14px;
+    margin: 0;
+    color: #999;
+}
+
+/* 侧边栏样式 */
+.el-aside h3 {
+    padding-left: 20px;
+    color: #606266;
+}
+
+.aside-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 10px;
+    text-align: center;
+    background-color: #fff;
+    border-top: 1px solid #e6e6e6;
+}
+
+/* 欢迎页面 */
+.welcome-message {
+    text-align: center;
+    margin-top: 100px;
+}
+
+.welcome-message h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #303133;
+}
+
+.welcome-message p {
+    font-size: 16px;
+    margin-bottom: 30px;
+    color: #606266;
+}
+
+/* 聊天容器 */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 120px);
+}
+
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+.chat-input {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.input-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.input-actions button {
+    margin-left: 10px;
+}
+
+/* 消息样式 */
+.message {
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.message.user {
+    align-items: flex-end;
+}
+
+.message.assistant {
+    align-items: flex-start;
+}
+
+.message-content {
+    max-width: 80%;
+    padding: 15px;
+    border-radius: 4px;
+    position: relative;
+}
+
+.message.user .message-content {
+    background-color: #ecf5ff;
+    border: 1px solid #d9ecff;
+}
+
+.message.assistant .message-content {
+    background-color: #fff;
+    border: 1px solid #e6e6e6;
+    box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* SQL框样式 */
+.sql-box {
+    background-color: #f5f7fa;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    overflow: hidden;
+}
+
+.sql-header {
+    background-color: #409EFF;
+    color: #fff;
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sql-box pre {
+    margin: 0;
+    padding: 15px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.sql-box code {
+    font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+    font-size: 14px;
+}
+
+/* 结果框样式 */
+.results-box {
+    background-color: #f5f7fa;
+    border-radius: 4px;
+    margin-top: 15px;
+    overflow: hidden;
+}
+
+.results-header {
+    background-color: #67C23A;
+    color: #fff;
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.results-count {
+    font-size: 12px;
+    margin-right: 10px;
+}
+
+.results-table {
+    padding: 15px;
+}
+
+.empty-results {
+    padding: 20px;
+    text-align: center;
+    color: #909399;
+}
+
+/* 加载状态 */
+.loading-message {
+    text-align: center;
+    padding: 20px;
+}
+
+/* 样本数据 */
+.sample-data {
+    margin-top: 20px;
+}
+
+.sample-data h4 {
+    margin-bottom: 10px;
+    color: #606266;
+}
+
+/* 表格样式优化 */
+.el-table--border th, .el-table--border td {
+    word-break: break-all;
+}
+
+/* 响应式布局 */
+@media screen and (max-width: 768px) {
+    .el-aside {
+        width: 100% !important;
+    }
+    
+    .el-container {
+        flex-direction: column;
+    }
+    
+    .message-content {
+        max-width: 90%;
+    }
+} 

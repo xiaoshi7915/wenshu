@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>问数 - 自然语言数据查询智能体</title>
+    <!-- 引入Element UI -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="shortcut icon" href="/favicon.ico">
+</head>
+<body>
+    <div id="app">
+        <el-container>
+            <!-- 头部 -->
+            <el-header>
+                <div class="logo">
+                    <h1>WenShu</h1>
+                    <p>自然语言数据查询智能体</p>
+                </div>
+                <div class="header-controls">
+                    <el-button type="primary" size="small" @click="showConnectionModal">
+                        <i class="el-icon-link"></i> 连接数据库
+                    </el-button>
+                    {% raw %}
+                    <el-dropdown v-if="currentConnection" @command="handleCommand">
+                        <el-button type="info" size="small">
+                            {{ currentConnection.connection_id }} <i class="el-icon-arrow-down el-icon--right"></i>
+                        </el-button>
+                        <el-dropdown-menu slot="dropdown">
+                            <el-dropdown-item command="disconnect">断开连接</el-dropdown-item>
+                            <el-dropdown-item command="viewMetadata">查看数据库结构</el-dropdown-item>
+                        </el-dropdown-menu>
+                    </el-dropdown>
+                    {% endraw %}
+                </div>
+            </el-header>
+            
+            <!-- 主体内容 -->
+            <el-container>
+                <!-- 侧边栏 - 历史会话 -->
+                <el-aside width="250px">
+                    <h3>历史会话</h3>
+                    {% raw %}
+                    <el-menu>
+                        <el-menu-item v-for="(conversation, index) in conversations" :key="index" @click="selectConversation(index)">
+                            <i class="el-icon-chat-line-square"></i>
+                            <span v-if="conversation.title">{{ conversation.title }}</span>
+                            <span v-else>未命名会话</span>
+                        </el-menu-item>
+                    </el-menu>
+                    {% endraw %}
+                    <div class="aside-footer">
+                        <el-button type="primary" plain size="small" @click="createNewConversation">
+                            <i class="el-icon-plus"></i> 新建会话
+                        </el-button>
+                    </div>
+                </el-aside>
+                
+                <!-- 主要内容区 -->
+                <el-main>
+                    {% raw %}
+                    <div v-if="!currentConnection" class="welcome-message">
+                        <h2>欢迎使用问数自然语言数据查询智能体</h2>
+                        <p>请先连接数据源，然后开始使用自然语言进行查询。</p>
+                    </div>
+                    
+                    <div v-else class="chat-container">
+                        <!-- 聊天记录 -->
+                        <div class="chat-messages" ref="chatMessages">
+                            <div v-for="(message, index) in currentMessages" :key="index" :class="['message', message.role]">
+                                <div class="message-content">
+                                    <div v-if="message.role === 'assistant' && message.sql" class="sql-box">
+                                        <div class="sql-header">
+                                            <span>SQL查询</span>
+                                            <el-button type="text" size="mini" @click="copySql(message.sql)">
+                                                <i class="el-icon-copy-document"></i> 复制
+                                            </el-button>
+                                        </div>
+                                        <pre><code>{{ message.sql }}</code></pre>
+                                    </div>
+                                    <div v-html="formatMessage(message.content)"></div>
+                                    
+                                    <!-- 如果有查询结果 -->
+                                    <div v-if="message.role === 'assistant' && message.results" class="results-box">
+                                        <div class="results-header">
+                                            <span>查询结果</span>
+                                            <div>
+                                                <span class="results-count">{{ message.results.rowCount }} 条记录</span>
+                                                <el-button type="text" size="mini" @click="exportResults(message.results)">
+                                                    <i class="el-icon-download"></i> 导出
+                                                </el-button>
+                                            </div>
+                                        </div>
+                                        <div class="results-table" v-if="message.results.rows && message.results.rows.length > 0">
+                                            <el-table :data="message.results.rows" border stripe size="small" height="300">
+                                                <el-table-column
+                                                    v-for="column in message.results.columns"
+                                                    :key="column"
+                                                    :prop="column"
+                                                    :label="column"
+                                                    min-width="120">
+                                                </el-table-column>
+                                            </el-table>
+                                        </div>
+                                        <div v-else class="empty-results">
+                                            查询没有返回任何结果
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 加载中 -->
+                            <div v-if="loading" class="loading-message">
+                                <el-loading type="primary" text="正在处理您的查询..."></el-loading>
+                            </div>
+                        </div>
+                        
+                        <!-- 输入框 -->
+                        <div class="chat-input">
+                            <el-input
+                                type="textarea"
+                                :rows="3"
+                                placeholder="使用自然语言描述您的查询需求..."
+                                v-model="userInput"
+                                @keyup.ctrl.enter.native="sendQuery">
+                            </el-input>
+                            <div class="input-actions">
+                                <el-button type="info" plain @click="showSqlInput">使用SQL</el-button>
+                                <el-button type="primary" @click="sendQuery" :disabled="loading || !userInput">发送</el-button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endraw %}
+                </el-main>
+            </el-container>
+        </el-container>
+        
+        <!-- 连接数据库对话框 -->
+        {% raw %}
+        <el-dialog title="连接数据库" :visible.sync="connectionModalVisible" width="500px">
+            <el-form :model="connectionForm" label-width="100px">
+                <el-form-item label="数据库类型">
+                    <el-select v-model="connectionForm.db_type" placeholder="选择数据库类型">
+                        <el-option label="MySQL" value="mysql"></el-option>
+                        <el-option label="PostgreSQL" value="postgresql" disabled></el-option>
+                        <el-option label="SQL Server" value="mssql" disabled></el-option>
+                        <el-option label="Oracle" value="oracle" disabled></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="主机">
+                    <el-input v-model="connectionForm.host" placeholder="localhost"></el-input>
+                </el-form-item>
+                <el-form-item label="端口">
+                    <el-input v-model="connectionForm.port" placeholder="3306"></el-input>
+                </el-form-item>
+                <el-form-item label="数据库名">
+                    <el-input v-model="connectionForm.database" placeholder="database_name"></el-input>
+                </el-form-item>
+                <el-form-item label="用户名">
+                    <el-input v-model="connectionForm.user" placeholder="root"></el-input>
+                </el-form-item>
+                <el-form-item label="密码">
+                    <el-input v-model="connectionForm.password" type="password"></el-input>
+                </el-form-item>
+            </el-form>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="connectionModalVisible = false">取消</el-button>
+                <el-button type="primary" @click="connectDatabase" :loading="connecting">连接</el-button>
+            </span>
+        </el-dialog>
+        
+        <!-- SQL输入对话框 -->
+        <el-dialog title="执行SQL查询" :visible.sync="sqlModalVisible" width="700px">
+            <el-input
+                type="textarea"
+                :rows="10"
+                placeholder="SELECT * FROM table_name WHERE condition"
+                v-model="sqlInput">
+            </el-input>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="sqlModalVisible = false">取消</el-button>
+                <el-button type="primary" @click="executeSql" :loading="sqlLoading">执行</el-button>
+            </span>
+        </el-dialog>
+        
+        <!-- 数据库结构对话框 -->
+        <el-dialog title="数据库结构" :visible.sync="metadataModalVisible" width="800px" fullscreen>
+            <div v-if="currentConnection && currentConnection.metadata">
+                <el-tabs tab-position="left">
+                    <el-tab-pane v-for="table in currentConnection.metadata.tables" :key="table.name" :label="table.name">
+                        <h3>{{ table.name }}</h3>
+                        <p v-if="table.comment">{{ table.comment }}</p>
+                        
+                        <el-table :data="table.columns" border stripe>
+                            <el-table-column prop="name" label="字段名" width="180"></el-table-column>
+                            <el-table-column prop="type" label="类型" width="180"></el-table-column>
+                            <el-table-column prop="comment" label="说明"></el-table-column>
+                            <el-table-column label="约束" width="150">
+                                <template slot-scope="scope">
+                                    <el-tag v-if="scope.row.is_primary" type="success" size="mini">主键</el-tag>
+                                    <el-tag v-if="!scope.row.nullable" type="info" size="mini">非空</el-tag>
+                                    <el-tag v-if="scope.row.foreign_key" type="warning" size="mini">
+                                        外键 → {{ scope.row.foreign_key.table }}.{{ scope.row.foreign_key.column }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                        
+                        <!-- 样本数据 -->
+                        <div v-if="currentConnection.sample_data && currentConnection.sample_data[table.name]" class="sample-data">
+                            <h4>样本数据</h4>
+                            <el-table :data="currentConnection.sample_data[table.name]" border stripe size="small">
+                                <el-table-column
+                                    v-for="column in table.columns"
+                                    :key="column.name"
+                                    :prop="column.name"
+                                    :label="column.name"
+                                    width="180">
+                                </el-table-column>
+                            </el-table>
+                        </div>
+                    </el-tab-pane>
+                </el-tabs>
+            </div>
+        </el-dialog>
+        {% endraw %}
+    </div>
+    
+    <!-- 引入Vue.js和相关库 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/static/js/main.js"></script>
+</body>
+</html> 

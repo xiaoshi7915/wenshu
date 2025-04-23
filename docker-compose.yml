@@ -1,0 +1,39 @@
+version: '3'
+
+services:
+  wenshu:
+    build: .
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - mysql
+    restart: unless-stopped
+    networks:
+      - wenshu-network
+
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: wenshu
+      MYSQL_USER: wenshu
+      MYSQL_PASSWORD: wenshu
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./db_init.sql:/docker-entrypoint-initdb.d/db_init.sql
+    restart: unless-stopped
+    networks:
+      - wenshu-network
+
+volumes:
+  mysql-data:
+
+networks:
+  wenshu-network:
+    driver: bridge 
